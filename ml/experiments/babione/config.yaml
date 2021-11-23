@@ -1,0 +1,14 @@
+# required
+exp_name: 'bAbI_Task_1'
+
+print_freq: 100
+tb_freq:    10
+batch_size: 32
+max_n_batches: 100000000
+test_batch_size: 32
+epochs:     10
+no_cuda:    1
+data_path: 'data'
+experiments_data_path: 'experiments_data'
+
+lr: 0.005

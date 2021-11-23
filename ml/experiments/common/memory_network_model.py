@@ -1,6 +1,9 @@
 import torch
 from torch import nn
 from torch.nn.parameter import Parameter
+import torch.nn.functional as F
+from ml.metrics.pytorch_metrics import ClassAccuracyMetric
+from ml.utils.utils import flatten_dict_of_dict
 
 
 def create_batch_of_identity(batch_size, n):
@@ -11,7 +14,7 @@ def create_batch_of_identity(batch_size, n):
 
 
 def batch_to_batch_onehot_tensor(batch, vocab_size):
-    # shape: B x seq x sent x sent x V x V
+    # output shape: B x seq x sent x sent x V x V
     sequence_len = batch.size()[1]
     sentence_len = batch.size()[2]
     batch_size = batch.size()[0]
@@ -28,7 +31,7 @@ def batch_to_batch_onehot_tensor(batch, vocab_size):
 
 
 def batch_to_batch_onehot_tensor2(batch, vocab_size):
-    # shape: B x seq x sent x V x V
+    # output shape: B x seq x sent x V x V
     sequence_len = batch.size()[1]
     sentence_len = batch.size()[2]
     batch_size = batch.size()[0]
@@ -50,13 +53,15 @@ class MemoryNetwork(nn.Module):
         self.a = Parameter(torch.zeros((n_line_types, sentence_len * sentence_len,), requires_grad=True))
         self.b = Parameter(torch.zeros((n_line_types, sentence_len,), requires_grad=True))
     
-    def forward(self, batch, line_types):
-        batch_onehot_tensor = batch_to_batch_onehot_tensor(batch, self.vocab_size)    # B x seq x sent x sent x V x V
-        batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(batch, self.vocab_size)  # B x seq x sent x V x V
+    def forward(self, sentence_sequences, questions, line_types):
+        raise NotImplementedError()
 
-        seq_len = batch.size()[1]
-        sentence_len = batch.size()[2]
-        batch_size = batch.size()[0]
+        batch_onehot_tensor = batch_to_batch_onehot_tensor(sentence_sequences, self.vocab_size)    # B x seq x sent x sent x V x V
+        batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(sentence_sequences, self.vocab_size)  # B x seq x sent x V x V
+
+        seq_len = sentence_sequences.size()[1]
+        sentence_len = sentence_sequences.size()[2]
+        batch_size = sentence_sequences.size()[0]
         memory = torch.zeros((batch_size, vocab_size, vocab_size))
         identity = create_batch_of_identity(batch_size, vocab_size)
         ones = torch.ones((batch_size, vocab_size, vocab_size))
@@ -72,6 +77,44 @@ class MemoryNetwork(nn.Module):
             # bmm: batch matrix multiplication
             memory = write_to_memory + remember
         return torch.mean(memory)
+
+# maps dict to dict, includes metrics and loss
+class MemoryNetworkModel(nn.Module):
+    def __init__(self, sentence_len, vocab_size, n_line_types):
+        super(MemoryNetworkModel, self).__init__()
+        self.net = MemoryNetwork(sentence_len, vocab_size, n_line_types)
+        self.metrics = {
+            'class_acc': ClassAccuracyMetric()
+        }
+        self.loss = nn.CrossEntropyLoss()
+
+
+    def forward(self, input_dict, skip_metrics=False):
+        # input_dict: {'x': ..., 'label': ...}
+        result = {}
+
+        sentence_sequences = input_dict.get('sentence_sequence')
+        questions = input_dict.get('question')
+        line_types = input_dict.get('line_type')
+        labels = input_dict.get('label', None)
+        logits = self.net(sentence_sequences, questions, line_types, labels)
+        result['logits'] = logits
+        result['pred'] = F.softmax(logits, dim=1)
+
+        if labels is not None:
+            loss = self.loss(logits, labels)
+            if not skip_metrics:
+                for metric in self.metrics.values():
+                    metric(logits, labels)
+            result['loss'] = loss
+
+        return result
+
+    def get_metrics(self, reset=False):
+        return flatten_dict_of_dict({
+            metric_name: metric.get_metric(reset)
+            for metric_name, metric in self.metrics.items()
+        }, delimiter='/')
 
 
 if __name__ == '__main__':
