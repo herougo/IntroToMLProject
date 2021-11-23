@@ -1,0 +1,19 @@
+# required
+exp_name: 'Classification'
+
+print_freq: 100
+tb_freq:    500
+batch_size: 64
+max_n_batches: -1
+test_batch_size: 64
+epochs:     240
+no_cuda:    1
+data_path: 'data'
+experiments_data_path: 'experiments_data'
+
+lr: 0.05
+
+# other
+lr_decay_epochs: '150,180,210'
+lr_decay_rate: 0.0
+momentum: 0.9
