@@ -13,6 +13,6 @@ experiments_data_path: 'experiments_data'
 task_ids: [0]
 
 model_kwargs:
-  linear_layer_output: True
+  linear_layer_output: False
 
 lr: 0.005
