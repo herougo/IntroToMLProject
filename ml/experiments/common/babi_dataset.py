@@ -1,4 +1,6 @@
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, DataLoader
+from easydict import EasyDict as edict
 
 
 def recursive_yield(maybe_list):
@@ -43,3 +45,33 @@ class BABITask(Dataset):
 
     def __len__(self):
         return len(self.sentence_sequences)
+
+def get_dummy_babi_dataloaders():
+    batch_size = 32
+    sentences = torch.tensor([[[1, 2, 3, 4, 5, 6, 7],
+                               [3, 4, 5, 6, 7, 8, 9]] * 7] * batch_size, dtype=torch.long)
+    questions = torch.tensor([[0, 0, 0, 0, 0, 0, 7]] * batch_size, dtype=torch.long)
+    sentence_line_types = torch.tensor([[0, 1] * 7] * batch_size, dtype=torch.long)
+    question_line_types = torch.tensor([0] * batch_size, dtype=torch.long)
+    labels = torch.tensor([0] * batch_size, dtype=torch.long)
+
+    data_loader = DataLoader(list(zip(sentences, questions, sentence_line_types, question_line_types, labels)),
+                             batch_size=batch_size, shuffle=True)
+
+    data_loader_metadata = edict({
+        'sentence_len': 7,
+        'vocab_size': 10,
+        'n_sentence_line_types': 2,
+        'n_question_line_types': 1
+    })
+    data_loaders = edict({
+        'train': data_loader,
+        'val': data_loader,
+        'test': data_loader
+    })
+    return data_loaders, data_loader_metadata
+
+def get_babi_dataloaders(task_ids):
+    # task_ids: integer or list of integers corresponding to the task ids of bAbI we want to include in the dataset
+    # TODO: change this from dummy
+    return get_dummy_babi_dataloaders()

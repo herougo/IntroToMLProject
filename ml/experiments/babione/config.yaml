@@ -10,5 +10,6 @@ epochs:     10
 no_cuda:    1
 data_path: 'data'
 experiments_data_path: 'experiments_data'
+task_ids: [0]
 
 lr: 0.005

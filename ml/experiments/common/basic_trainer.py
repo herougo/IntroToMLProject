@@ -15,12 +15,13 @@ class BasicTrainer:
     STATE_DICT_ATTRS = 'model models optimizer optimizers'.split()
     REQUIRED_CONFIG_PARAMS = 'epochs max_n_batches use_cuda tb_freq'.split()
 
-    def __init__(self, config, exp_path, model, optimizer, logger, callbacks=None):
+    def __init__(self, config, exp_path, model, optimizer, logger, dataset_keys=None, callbacks=None):
         self.config = config  # easydict
         self.exp_path = exp_path
         self.model = model
         self.optimizer = optimizer
         self.logger = logger
+        self.dataset_keys = dataset_keys or ['x', 'label']
         self.callbacks = callbacks or []
 
         # boilerplate onwards
@@ -60,7 +61,7 @@ class BasicTrainer:
                 self.current_iter = i
                 self.model.train()
                 val_loss = None
-                input_dict = create_input_dict(data, self.config.use_cuda)
+                input_dict = create_input_dict(data, self.dataset_keys, self.config.use_cuda)
 
                 # It's very good practice to keep track of preparation time and computation time using
                 # tqdm to find any issues in your dataloader
@@ -91,7 +92,7 @@ class BasicTrainer:
                 
                 # Make sure you use .item() to detach from the computation graph so 
                 # the graph doesn't get saved.
-                train_loss.update(train_batch_loss.item(), input_dict['x'].size()[0])
+                train_loss.update(train_batch_loss.item(), data[0].size()[0])
 
                 if (self.total_iter - 1) % self.config.tb_freq == 0:
                     val_loss = self.validate(val_data_loader)
@@ -141,10 +142,10 @@ class BasicTrainer:
             if i >= self.config.max_n_batches:
                 break
 
-            input_dict = create_input_dict(data, self.config.use_cuda)
+            input_dict = create_input_dict(data, self.dataset_keys, self.config.use_cuda)
             output_dict = self.model(input_dict, skip_metrics=True)
             batch_val_loss = output_dict['loss']
-            val_loss.update(batch_val_loss.item(), input_dict['x'].size()[0])
+            val_loss.update(batch_val_loss.item(), data[0].size()[0])
 
         if training:
             self.model.train()
@@ -169,9 +170,9 @@ class BasicTrainer:
             if i >= self.config.max_n_batches:
                 break
 
-            input_dict = create_input_dict(data, self.config.use_cuda)
+            input_dict = create_input_dict(data, self.dataset_keys, self.config.use_cuda)
             output_dict = self.model(input_dict)
-            test_loss.update(output_dict['loss'].item(), x.size()[0])
+            test_loss.update(output_dict['loss'].item(), data[0].size()[0])
 
         if training:
             self.model.train()

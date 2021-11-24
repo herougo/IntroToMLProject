@@ -20,10 +20,9 @@ class EarlyStopping:
         self._num_since_best += 1
         return self._num_since_best >= self._patience, False
 
-def create_input_dict(data_point, use_cuda):
+def create_input_dict(data_point, dataset_keys, use_cuda):
     if isinstance(data_point, (tuple, list)):
-        x, label = data_point
-        data_point = {'x': x, 'label': label}
+        data_point = {key: val for key, val in zip(dataset_keys, data_point)}
 
     if use_cuda:
         for data_val_name, data_val in data_point.items():
