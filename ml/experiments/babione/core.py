@@ -44,7 +44,7 @@ class MemoryNetAgent:
         n_sentence_line_types = self.data_loader_metadata.n_sentence_line_types
         n_question_line_types = self.data_loader_metadata.n_question_line_types
         return MemoryNetworkModel(sentence_len, vocab_size, n_sentence_line_types, n_question_line_types,
-                                  self.config.use_cuda)
+                                  self.config.use_cuda, **self.config.model_kwargs)
 
     def get_optimizer(self):
         return torch.optim.Adam(self.model.parameters(), lr=self.config.lr)

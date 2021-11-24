@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+
 class EarlyStopping:
     def __init__(self, patience=None):
         self._best_loss = np.inf
@@ -19,6 +20,7 @@ class EarlyStopping:
         
         self._num_since_best += 1
         return self._num_since_best >= self._patience, False
+
 
 def create_input_dict(data_point, dataset_keys, use_cuda):
     if isinstance(data_point, (tuple, list)):

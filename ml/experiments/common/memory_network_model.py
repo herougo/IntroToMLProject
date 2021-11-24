@@ -80,8 +80,10 @@ class MemoryNetwork(nn.Module):
         self.use_cuda = use_cuda
     
     def forward(self, sentence_sequences, questions, sentence_line_types, question_line_types):
-        batch_onehot_tensor = batch_to_batch_onehot_tensor(sentence_sequences, self.vocab_size)    # B x seq x sent x sent x V x V
-        batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(sentence_sequences, self.vocab_size)  # B x seq x sent x V x V
+        batch_onehot_tensor = batch_to_batch_onehot_tensor(sentence_sequences, self.vocab_size)
+        # B x seq x sent x sent x V x V
+        batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(sentence_sequences, self.vocab_size)
+        # B x seq x sent x V x V
 
         seq_len = sentence_sequences.size()[1]
         sentence_len = sentence_sequences.size()[2]
@@ -125,24 +127,26 @@ class MemoryNetwork(nn.Module):
 
         result = torch.sum(torch.sigmoid(c) * mem_onehot_matmul, axis=[1, 3])
 
-        # TODO: change
-        result = 10 * result - 5
-
         return result
 
 
 # maps dict to dict, includes metrics and loss
 class MemoryNetworkModel(nn.Module):
-    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda):
+    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda,
+                 linear_layer_output=False):
         super(MemoryNetworkModel, self).__init__()
         self.net = MemoryNetwork(sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda)
+        self.linear_layer_output = linear_layer_output
+        if linear_layer_output:
+            self.linear = nn.Linear(vocab_size, vocab_size)
+        else:
+            self.linear = None
         self.metrics = {
             'class_acc': ClassAccuracyMetric()
         }
         self.loss = nn.CrossEntropyLoss()
 
     def forward(self, input_dict, skip_metrics=False):
-        # input_dict: {'x': ..., 'label': ...}
         result = {}
 
         sentence_sequences = input_dict.get('sentence_sequence')
@@ -150,7 +154,14 @@ class MemoryNetworkModel(nn.Module):
         sentence_line_types = input_dict.get('sentence_line_type')
         question_line_types = input_dict.get('question_line_type')
         labels = input_dict.get('label', None)
-        logits = self.net(sentence_sequences, questions, sentence_line_types, question_line_types)
+        raw_memory_result = self.net(sentence_sequences, questions, sentence_line_types, question_line_types)
+
+        if self.linear_layer_output:
+            logits = self.linear(raw_memory_result)
+        else:
+            # TODO: change
+            logits = 10 * raw_memory_result - 5
+
         result['logits'] = logits
         result['pred'] = F.softmax(logits, dim=1)
 
