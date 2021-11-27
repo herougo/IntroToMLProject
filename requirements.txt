@@ -2,3 +2,9 @@ torch
 easydict
 tqdm
 prefetch_generator
+numpy
+pillow
+pyyaml
+matplotlib
+pandas
+torch
