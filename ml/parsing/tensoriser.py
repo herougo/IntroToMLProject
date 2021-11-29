@@ -1,3 +1,4 @@
+from keras.preprocessing.text import Tokenizer
 import torch
 from torch.utils.data import DataLoader
 from ml.parsing.parser import parse_file
@@ -20,6 +21,7 @@ class WordMap:
 class Tensoriser:
     def __init__(self):
         self._wordmap = WordMap()
+        self.tokenizer = Tokenizer(lower=True, split=' ')
 
     @staticmethod
     def _sentence_line_type(sentence, sentence_max_length):

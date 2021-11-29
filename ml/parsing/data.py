@@ -1,5 +1,12 @@
 from enum import IntEnum
 
+with open('ml/parsing/movement.txt') as f:
+    movement_verbs = f.read().split('\n')
+with open('ml/parsing/get_item.txt') as f:
+    get_item_verbs = f.read().split('\n')
+with open('ml/parsing/lose_item.txt') as f:
+    lose_item_verbs = f.read().split('\n')
+
 
 class LineClass(IntEnum):
     SINGLE_LOCATION = 0
@@ -47,30 +54,14 @@ def get_line_class(line):
     # Inspecting the dataset showed that the word 'and' appears iff two people change location
     if ' and ' in line:
         return LineClass.DOUBLE_LOCATION
-    movement = []
-    get_item = []
-    lose_item = []
-    with open('ml/parsing/movement.txt') as f:
-        movement = f.readlines()
-    with open('ml/parsing/get_item.txt') as f:
-        get_item = f.readlines()
-    with open('ml/parsing/lose_item.txt') as f:
-        lose_item = f.readlines()
-    for verb in movement:
-        # Remove trailing newline
-        verb = verb[:-1]
-        if verb in line:
-            return LineClass.SINGLE_LOCATION
-    for verb in get_item:
-        # Remove trailing newline
-        verb = verb[:-1]
-        if verb in line:
-            return LineClass.GET_ITEM
-    for verb in lose_item:
-        # Remove trailing newline
-        verb = verb[:-1]
-        if verb in line:
-            return LineClass.LOSE_ITEM
+
+    line_words = set(line.split(' '))
+    if set(movement_verbs) & line_words:
+        return LineClass.SINGLE_LOCATION
+    if set(get_item_verbs) & line_words:
+        return LineClass.GET_ITEM
+    if set(lose_item_verbs) & line_words:
+        return LineClass.LOSE_ITEM
     return None
 
 

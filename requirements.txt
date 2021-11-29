@@ -7,5 +7,5 @@ pillow
 pyyaml
 matplotlib
 pandas
-torch
 torchvision
+keras
