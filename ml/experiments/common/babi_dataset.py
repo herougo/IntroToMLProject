@@ -89,7 +89,7 @@ def get_babi_dataloaders(task_ids):
     max_sentence_len = max([story_collections[key].max_sentence_length for key in story_collections])
     metadata = edict({
         'sentence_len': max_sentence_len,
-        'vocab_size': tensoriser._wordmap._max_id,
+        'vocab_size': tensoriser._wordmap._max_id + 1, # Accounting for the padding "word"
         'n_sentence_line_types': len(tensoriser.seen_sentence_line_types),
         'n_question_line_types': len(tensoriser.seen_question_line_types)
     })
