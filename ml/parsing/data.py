@@ -50,11 +50,11 @@ def get_line_class(line):
     movement = []
     get_item = []
     lose_item = []
-    with open('../parsing/movement.txt') as f:
+    with open('ml/parsing/movement.txt') as f:
         movement = f.readlines()
-    with open('../parsing/get_item.txt') as f:
+    with open('ml/parsing/get_item.txt') as f:
         get_item = f.readlines()
-    with open('../parsing/lose_item.txt') as f:
+    with open('ml/parsing/lose_item.txt') as f:
         lose_item = f.readlines()
     for verb in movement:
         # Remove trailing newline

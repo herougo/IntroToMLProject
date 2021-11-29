@@ -63,7 +63,7 @@ class Tensoriser:
         transformed_answers = torch.tensor([self._wordmap.get_id(answer) for answer in story_collection.answers])
         return transformed_stories, transformed_questions, sentence_line_types, question_line_types, transformed_answers
 
-    def to_dataset(self, story_collection, batch_size, shuffle):
+    def to_dataloader(self, story_collection, batch_size, shuffle):
         return DataLoader(zip(*self.tensorise(story_collection)), batch_size=batch_size, shuffle=shuffle)
 
 
