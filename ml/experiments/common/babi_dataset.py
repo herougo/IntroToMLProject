@@ -2,6 +2,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from easydict import EasyDict as edict
 
+from ml.parsing.parser import parse_file
+from ml.parsing.tensoriser import Tensoriser
+
 
 def recursive_yield(maybe_list):
     if isinstance(maybe_list, (list, tuple)):
@@ -73,5 +76,20 @@ def get_dummy_babi_dataloaders():
 
 def get_babi_dataloaders(task_ids):
     # task_ids: integer or list of integers corresponding to the task ids of bAbI we want to include in the dataset
-    # TODO: change this from dummy
-    return get_dummy_babi_dataloaders()
+    # TODO: support list of integers
+    tensoriser = Tensoriser()
+    story_collections = {
+        'train': parse_file(f'data/en-valid/qa{task_ids}_train.txt'),
+        'val': parse_file(f'data/en-valid/qa{task_ids}_valid.txt'),
+        'test': parse_file(f'data/en-valid/qa{task_ids}_test.txt')
+    }
+    data_loaders = edict({key: tensoriser.to_dataloader(stories) for key, stories in story_collections})
+    max_sentence_len = max([collection.max_sentence_length for _, collection in story_collections])
+    metadata = edict({
+        'sentence_len': max_sentence_len,
+        'vocab_size': tensoriser._wordmap._max_id,
+        'n_sentence_line_types': len(tensoriser.seen_sentence_line_types),
+        'n_question_line_types': len(tensoriser.seen_question_line_types)
+    })
+    return data_loaders, metadata
+

@@ -22,14 +22,18 @@ class Tensoriser:
     def __init__(self):
         self._wordmap = WordMap()
         self.tokenizer = Tokenizer(lower=True, split=' ')
+        self.seen_sentence_line_types = set()
+        self.seen_question_line_types = set()
 
-    @staticmethod
-    def _sentence_line_type(sentence, sentence_max_length):
-        return (sentence_max_length * sentence.line_class) + len(sentence.text.strip().split(' '))
+    def _sentence_line_type(self, sentence, sentence_max_length):
+        line_type = (sentence_max_length * sentence.line_class) + len(sentence.text.strip().split(' '))
+        self.seen_sentence_line_types.add(line_type)
+        return line_type
 
-    @staticmethod
-    def _question_line_type(question, sentence_max_length):
-        return (sentence_max_length * question.question_class) + len(question.text.strip().split(' '))
+    def _question_line_type(self, question, sentence_max_length):
+        line_type = (sentence_max_length * question.question_class) + len(question.text.strip().split(' '))
+        self.seen_question_line_types.add(line_type)
+        return line_type
 
     def _story_line_types(self, story, sentence_max_length, story_max_length):
         line_types = [self._sentence_line_type(sentence, sentence_max_length) for sentence in story]
