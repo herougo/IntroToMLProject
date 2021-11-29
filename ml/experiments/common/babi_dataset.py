@@ -74,7 +74,7 @@ def get_dummy_babi_dataloaders():
     })
     return data_loaders, data_loader_metadata
 
-def get_babi_dataloaders(task_ids):
+def get_babi_dataloaders(task_ids, batch_size=32, shuffle=True):
     # task_ids: integer or list of integers corresponding to the task ids of bAbI we want to include in the dataset
     # TODO: support list of integers
     task_id = task_ids[0]
@@ -84,14 +84,15 @@ def get_babi_dataloaders(task_ids):
         'val': parse_file(f'data/en-valid/qa{task_id}_valid.txt'),
         'test': parse_file(f'data/en-valid/qa{task_id}_test.txt')
     }
-    data_loaders = edict({key: tensoriser.to_dataloader(story_collections[key],
-                                                        batch_size=32, shuffle=True) for key in story_collections})
+    data_loaders = edict({
+        key: tensoriser.to_dataloader(story_collections[key], batch_size=batch_size, shuffle=shuffle)
+        for key in story_collections})
     max_sentence_len = max([story_collections[key].max_sentence_length for key in story_collections])
     metadata = edict({
         'sentence_len': max_sentence_len,
-        'vocab_size': tensoriser._wordmap._max_id + 1, # Accounting for the padding "word"
-        'n_sentence_line_types': len(tensoriser.seen_sentence_line_types),
-        'n_question_line_types': len(tensoriser.seen_question_line_types)
+        'vocab_size': tensoriser._wordmap._max_id + 1,  # Accounting for the padding "word"
+        'n_sentence_line_types': max(tensoriser.seen_sentence_line_types) + 1,
+        'n_question_line_types': max(tensoriser.seen_question_line_types) + 1
     })
     return data_loaders, metadata
 
