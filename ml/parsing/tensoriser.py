@@ -72,5 +72,5 @@ class Tensoriser:
 
 
 if __name__ == '__main__':
-    test_data = parse_file('../../tasks_1-20_v1-2/en/qa3_three-supporting-facts_train.txt')
+    test_data = parse_file('data/en-valid/qa10_train.txt')
     print(Tensoriser().tensorise(test_data))

@@ -28,7 +28,7 @@ def parse_file(path):
 
 
 if __name__ == '__main__':
-    test_data = parse_file('data/en/qa3_three-supporting-facts_train.txt')
+    test_data = parse_file('data/en-valid/qa6_valid.txt')
     for story, question, answer in zip(test_data.stories, test_data.questions, test_data.answers):
         print(story)
         print(question)

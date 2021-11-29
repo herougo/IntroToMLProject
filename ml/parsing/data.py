@@ -62,7 +62,7 @@ def get_line_class(line):
         return LineClass.GET_ITEM
     if set(lose_item_verbs) & line_words:
         return LineClass.LOSE_ITEM
-    return None
+    raise LookupError(f'The verb has not been categorised: {line}')
 
 
 def get_question_class(line):
