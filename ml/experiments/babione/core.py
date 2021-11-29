@@ -51,7 +51,8 @@ class MemoryNetAgent:
 
     def get_data_loaders(self):
         # return: e.g. {'train': train_loader, 'val': val_loader}
-        data_loaders, data_loader_metadata = get_babi_dataloaders(self.config.task_ids)
+        data_loaders, data_loader_metadata = get_babi_dataloaders(self.config.task_ids,
+                                                                  batch_size=self.config.batch_size)
         return data_loaders, data_loader_metadata
 
     def get_trainer(self):
