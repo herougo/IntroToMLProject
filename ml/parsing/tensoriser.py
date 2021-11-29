@@ -1,4 +1,3 @@
-from keras.preprocessing.text import Tokenizer
 import torch
 from torch.utils.data import DataLoader
 from ml.parsing.parser import parse_file
@@ -21,7 +20,6 @@ class WordMap:
 class Tensoriser:
     def __init__(self):
         self._wordmap = WordMap()
-        self.tokenizer = Tokenizer(lower=True, split=' ')
         self.seen_sentence_line_types = set()
         self.seen_question_line_types = set()
 
@@ -70,7 +68,7 @@ class Tensoriser:
         return transformed_stories, transformed_questions, sentence_line_types, question_line_types, transformed_answers
 
     def to_dataloader(self, story_collection, batch_size, shuffle):
-        return DataLoader(zip(*self.tensorise(story_collection)), batch_size=batch_size, shuffle=shuffle)
+        return DataLoader(list(zip(*self.tensorise(story_collection))), batch_size=batch_size, shuffle=shuffle)
 
 
 if __name__ == '__main__':

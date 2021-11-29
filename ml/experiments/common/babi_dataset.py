@@ -77,14 +77,16 @@ def get_dummy_babi_dataloaders():
 def get_babi_dataloaders(task_ids):
     # task_ids: integer or list of integers corresponding to the task ids of bAbI we want to include in the dataset
     # TODO: support list of integers
+    task_id = task_ids[0]
     tensoriser = Tensoriser()
     story_collections = {
-        'train': parse_file(f'data/en-valid/qa{task_ids}_train.txt'),
-        'val': parse_file(f'data/en-valid/qa{task_ids}_valid.txt'),
-        'test': parse_file(f'data/en-valid/qa{task_ids}_test.txt')
+        'train': parse_file(f'data/en-valid/qa{task_id}_train.txt'),
+        'val': parse_file(f'data/en-valid/qa{task_id}_valid.txt'),
+        'test': parse_file(f'data/en-valid/qa{task_id}_test.txt')
     }
-    data_loaders = edict({key: tensoriser.to_dataloader(stories) for key, stories in story_collections})
-    max_sentence_len = max([collection.max_sentence_length for _, collection in story_collections])
+    data_loaders = edict({key: tensoriser.to_dataloader(story_collections[key],
+                                                        batch_size=32, shuffle=True) for key in story_collections})
+    max_sentence_len = max([story_collections[key].max_sentence_length for key in story_collections])
     metadata = edict({
         'sentence_len': max_sentence_len,
         'vocab_size': tensoriser._wordmap._max_id,
