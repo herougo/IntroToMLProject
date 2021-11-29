@@ -1,4 +1,3 @@
-from keras.preprocessing.text import Tokenizer
 import torch
 from torch.utils.data import DataLoader
 from ml.parsing.parser import parse_file
@@ -21,15 +20,18 @@ class WordMap:
 class Tensoriser:
     def __init__(self):
         self._wordmap = WordMap()
-        self.tokenizer = Tokenizer(lower=True, split=' ')
+        self.seen_sentence_line_types = set()
+        self.seen_question_line_types = set()
 
-    @staticmethod
-    def _sentence_line_type(sentence, sentence_max_length):
-        return (sentence_max_length * sentence.line_class) + len(sentence.text.strip().split(' '))
+    def _sentence_line_type(self, sentence, sentence_max_length):
+        line_type = (sentence_max_length * sentence.line_class) + len(sentence.text.strip().split(' '))
+        self.seen_sentence_line_types.add(line_type)
+        return line_type
 
-    @staticmethod
-    def _question_line_type(question, sentence_max_length):
-        return (sentence_max_length * question.question_class) + len(question.text.strip().split(' '))
+    def _question_line_type(self, question, sentence_max_length):
+        line_type = (sentence_max_length * question.question_class) + len(question.text.strip().split(' '))
+        self.seen_question_line_types.add(line_type)
+        return line_type
 
     def _story_line_types(self, story, sentence_max_length, story_max_length):
         line_types = [self._sentence_line_type(sentence, sentence_max_length) for sentence in story]
@@ -66,9 +68,9 @@ class Tensoriser:
         return transformed_stories, transformed_questions, sentence_line_types, question_line_types, transformed_answers
 
     def to_dataloader(self, story_collection, batch_size, shuffle):
-        return DataLoader(zip(*self.tensorise(story_collection)), batch_size=batch_size, shuffle=shuffle)
+        return DataLoader(list(zip(*self.tensorise(story_collection))), batch_size=batch_size, shuffle=shuffle)
 
 
 if __name__ == '__main__':
-    test_data = parse_file('../../tasks_1-20_v1-2/en/qa3_three-supporting-facts_train.txt')
+    test_data = parse_file('data/en-valid/qa10_train.txt')
     print(Tensoriser().tensorise(test_data))

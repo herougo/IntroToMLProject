@@ -10,7 +10,7 @@ epochs:     100
 no_cuda:    1
 data_path: 'data'
 experiments_data_path: 'experiments_data'
-task_ids: [0]
+task_ids: [1]
 
 model_kwargs:
   linear_layer_output: False

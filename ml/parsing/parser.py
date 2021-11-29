@@ -1,7 +1,7 @@
 from ml.parsing.data import StoryCollection, Sentence, Question
 import re
 
-line_pattern = re.compile(r"(?P<id>\d+) (?P<text>.*?)(\t(?P<answer>.*?)\t(?P<supporting>.*))?$")
+line_pattern = re.compile(r"(?P<id>\d+) (?P<text>.*?)(\?\s*\t(?P<answer>.*?)\t(?P<supporting>.*))?$")
 
 
 def parse_file(path):
@@ -28,7 +28,7 @@ def parse_file(path):
 
 
 if __name__ == '__main__':
-    test_data = parse_file('../../tasks_1-20_v1-2/en/qa3_three-supporting-facts_train.txt')
+    test_data = parse_file('data/en-valid/qa6_valid.txt')
     for story, question, answer in zip(test_data.stories, test_data.questions, test_data.answers):
         print(story)
         print(question)
