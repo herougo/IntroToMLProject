@@ -4,6 +4,7 @@ import datetime
 import os
 import shutil
 import torch
+import yaml
 from easydict import EasyDict as edict
 from torchvision import datasets, transforms
 
