@@ -29,7 +29,7 @@ class MemoryNetAgent:
         self.trainer = None
 
     def setup(self):
-        self.data_loaders, self.data_loader_metadata = self.get_data_loaders()
+        self.data_loaders, self.tensoriser, self.data_loader_metadata = self.get_data_loaders()
         self.model = self.get_model()
         if self.config.use_cuda:  # recommended: cuda before optimizer
             self.model = self.model.cuda()
@@ -43,20 +43,22 @@ class MemoryNetAgent:
         vocab_size = self.data_loader_metadata.vocab_size
         n_sentence_line_types = self.data_loader_metadata.n_sentence_line_types
         n_question_line_types = self.data_loader_metadata.n_question_line_types
+        word_map = self.tensoriser._wordmap
         return MemoryNetworkModel(sentence_len, vocab_size, n_sentence_line_types, n_question_line_types,
-                                  self.config.use_cuda, **self.config.model_kwargs)
+                                  self.config.use_cuda, word_map, **self.config.model_kwargs)
 
     def get_optimizer(self):
         return torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
 
     def get_data_loaders(self):
         # return: e.g. {'train': train_loader, 'val': val_loader}
-        data_loaders, data_loader_metadata = get_babi_dataloaders(self.config.task_ids,
-                                                                  batch_size=self.config.batch_size)
-        return data_loaders, data_loader_metadata
+        data_loaders, tensoriser, data_loader_metadata = get_babi_dataloaders(self.config.task_ids,
+                                                                              batch_size=self.config.batch_size)
+        return data_loaders, tensoriser, data_loader_metadata
 
     def get_trainer(self):
-        dataset_keys = ('sentence_sequence', 'question', 'sentence_line_type', 'question_line_type', 'label')
+        dataset_keys = ('sentence_sequence', 'question', 'sentence_line_type', 'question_line_type', 'story_lengths',
+                        'label')
         return BasicTrainer(self.config, self.exp_path, self.model, self.optimizer,
                             self.logger, dataset_keys=dataset_keys, callbacks=self.callbacks)
 

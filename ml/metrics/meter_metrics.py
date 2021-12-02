@@ -22,6 +22,12 @@ class AverageMeter:
         self.count += n
         self.avg = self.sum / self.count
 
+    def get_metric(self, reset=False):
+        result = self.val
+        if reset:
+            self.reset()
+        return result
+
     @property
     def val(self):
         return self.avg

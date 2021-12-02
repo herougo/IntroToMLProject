@@ -6,15 +6,23 @@ from ml.parsing.parser import parse_file
 class WordMap:
     def __init__(self):
         self._words = {}
+        self._ix_to_word = {0: '<NULL>'}
         self._max_id = 0
 
-    def get_id(self, word):
+    def add_word(self, word):
         if word in self._words:
             return self._words[word]
         else:
             self._max_id += 1
             self._words[word] = self._max_id
+            self._ix_to_word[self._max_id] = word
             return self._max_id
+
+    def get_id(self, word, default=None):
+        return self._words.get(word, default)
+
+    def get_word(self, ix, default=None):
+        return self._ix_to_word.get(ix, default)
 
 
 class Tensoriser:
@@ -41,7 +49,7 @@ class Tensoriser:
     def _tensorise_sentence(self, sentence, sentence_max_length):
         sentence = sentence.strip().strip('.').lower()
         words = sentence.split(' ')
-        transformed_words = [self._wordmap.get_id(word) for word in words]
+        transformed_words = [self._wordmap.add_word(word) for word in words]
         transformed_words.extend([0] * (sentence_max_length - len(words)))
         return transformed_words
 
@@ -64,11 +72,19 @@ class Tensoriser:
         question_line_types = torch.tensor(
             [self._question_line_type(question, story_collection.max_sentence_length)
              for question in story_collection.questions])
-        transformed_answers = torch.tensor([self._wordmap.get_id(answer) for answer in story_collection.answers])
-        return transformed_stories, transformed_questions, sentence_line_types, question_line_types, transformed_answers
+        transformed_answers = torch.tensor([self._wordmap.add_word(answer) for answer in story_collection.answers])
+        story_lengths = torch.tensor([len(story) for story in story_collection.stories], dtype=torch.long)
+        return (transformed_stories, transformed_questions, sentence_line_types, question_line_types,
+                story_lengths, transformed_answers)
 
     def to_dataloader(self, story_collection, batch_size, shuffle):
         return DataLoader(list(zip(*self.tensorise(story_collection))), batch_size=batch_size, shuffle=shuffle)
+
+
+def tensorised_to_full_sequence(tensorized_story, tensorized_question, word_map):
+    result = [[word_map.get_word(int(ix)) for ix in sent] for sent in tensorized_story]
+    result.append([word_map.get_word(int(ix)) for ix in tensorized_question])
+    return result
 
 
 if __name__ == '__main__':

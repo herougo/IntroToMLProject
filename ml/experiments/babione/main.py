@@ -12,6 +12,7 @@ def main():
     agent.setup()
     agent.train()
     print('Running on Test Data')
+    agent.model.use_interpretability = True
     print(agent.test())
 
 

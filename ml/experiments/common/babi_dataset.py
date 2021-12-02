@@ -95,5 +95,5 @@ def get_babi_dataloaders(task_ids, batch_size=32, shuffle=True):
         'n_sentence_line_types': max(tensoriser.seen_sentence_line_types) + 1,
         'n_question_line_types': max(tensoriser.seen_question_line_types) + 1
     })
-    return data_loaders, metadata
+    return data_loaders, tensoriser, metadata
 

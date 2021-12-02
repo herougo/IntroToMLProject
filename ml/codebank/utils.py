@@ -18,8 +18,8 @@ def _edict_to_dict(ed):
             result[key] = val
     return result
 
-# core utils
 
+# core utils
 def create_exp_dir_name(exp_name, include_date=False):
     if include_date:
         # e.g. 'DCGAN-May-08-2020-5-30-12'
@@ -39,7 +39,6 @@ def create_save_model_directory(config, logger, dir_include_date=False):
             dir_name = create_exp_dir_name(config.exp_name, 
                                            include_date=dir_include_date)
 
-
     exp_path = os.path.join(config.experiments_data_path, dir_name)
 
     if not os.path.isdir(exp_path):
@@ -47,6 +46,16 @@ def create_save_model_directory(config, logger, dir_include_date=False):
         for folder_name in folders:
             path = os.path.join(exp_path, folder_name)
             os.makedirs(path)
+        if hasattr(config, 'config_path'):
+            config_filename = os.path.basename(config.config_path)
+            shutil.copyfile(config.config_path, os.path.join(exp_path, config_filename))
+        else:
+            with open(os.path.join(exp_path, 'config.yaml'), 'w') as file:
+                documents = yaml.dump(_edict_to_dict(config), file,
+                                      default_flow_style=False)
+        logger.info(f'Created experiment directory system')
+    else:
+        logger.info('Experiment directory already exists.')
 
     log_path = os.path.join(exp_path, 'logs/log.txt')
     file_handler_abs_paths = [os.path.abspath(h.baseFilename)
@@ -58,19 +67,8 @@ def create_save_model_directory(config, logger, dir_include_date=False):
         logger.addHandler(fh)
     logger.info(f'Experiment directory: {exp_path}')
 
-    if not os.path.isdir(exp_path):
-        if hasattr(config, 'config_path'):
-            config_filename = os.path.basename(config.config_path)
-            shutil.copyfile(config.config_path, os.path.join(exp_path, config_filename))
-        else:
-            with open(os.path.join(exp_path, 'config.yaml'), 'w') as file:
-                documents = yaml.dump(_edict_to_dict(config), file, 
-                                      default_flow_style=False)
-        logger.info(f'Created experiment directory system')
-    else:
-        logger.info('Experiment directory already exists.')
-
     return exp_path
+
 
 # agent utils
 def dataset_dict_to_data_loader_dict(dataset_dict, batch_size, test_batch_size, use_cuda):
@@ -93,6 +91,7 @@ def dataset_dict_to_data_loader_dict(dataset_dict, batch_size, test_batch_size, 
 
 # trainer utils
 # these follow the style of BasicClassificationTrainer
+
 
 def create_training_state_dict(trainer):
     # Assumption: key matches attribute name

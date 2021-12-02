@@ -3,7 +3,11 @@ from torch import nn
 from torch.nn.parameter import Parameter
 import torch.nn.functional as F
 from ml.metrics.pytorch_metrics import ClassAccuracyMetric
+from ml.metrics.meter_metrics import AverageMeter
 from ml.utils.utils import flatten_dict_of_dict
+from ml.interpret.utils import interpret_to_code_batch, simulate_code_lines
+from easydict import EasyDict as edict
+from ml.parsing.tensoriser import tensorised_to_full_sequence
 
 
 def create_batch_of_identity(batch_size, n):
@@ -11,6 +15,7 @@ def create_batch_of_identity(batch_size, n):
     x = x.reshape((1, n, n))
     y = x.repeat(batch_size, 1, 1)
     return y
+
 
 def batch_to_batch_onehot_tensor(batch, vocab_size):
     '''
@@ -79,7 +84,7 @@ class MemoryNetwork(nn.Module):
         self.c = Parameter(torch.zeros((n_question_line_types, sentence_len), requires_grad=True))
         self.use_cuda = use_cuda
     
-    def forward(self, sentence_sequences, questions, sentence_line_types, question_line_types):
+    def forward(self, sentence_sequences, questions, sentence_line_types, question_line_types, story_lengths):
         batch_onehot_tensor = batch_to_batch_onehot_tensor(sentence_sequences, self.vocab_size)
         # B x seq x sent x sent x V x V
         batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(sentence_sequences, self.vocab_size)
@@ -103,11 +108,16 @@ class MemoryNetwork(nn.Module):
             arange = arange.cuda()
             questions_onehot_tensor = questions_onehot_tensor.cuda()
 
+        a_s = []
+        b_s = []
+
         for i in range(seq_len):
             a = self.a.view(1, self.n_sentence_line_types, sentence_len, sentence_len, 1, 1).repeat(batch_size, 1, 1, 1, 1, 1)
             a = a[arange, sentence_line_types[:, i]]
+            a_s.append(a)
             b = self.b.view(1, self.n_sentence_line_types, sentence_len, 1, 1).repeat(batch_size, 1, 1, 1, 1)
             b = b[arange, sentence_line_types[:, i]]
+            b_s.append(b)
             write_to_memory = torch.sum(torch.tanh(a) * batch_onehot_tensor[:, i], axis=[1, 2])
             modified_identity = identity - torch.minimum(torch.sum(torch.sigmoid(b) * batch_onehot_tensor2[:, i], axis=1), ones)
             remember = torch.bmm(modified_identity, memory)
@@ -127,13 +137,19 @@ class MemoryNetwork(nn.Module):
 
         result = torch.sum(torch.sigmoid(c) * mem_onehot_matmul, axis=[1, 3])
 
-        return result
+        in_between_values = edict({
+            'a_s': a_s,
+            'b_s': b_s,
+            'c': c
+        })
+
+        return result, in_between_values
 
 
 # maps dict to dict, includes metrics and loss
 class MemoryNetworkModel(nn.Module):
     def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda,
-                 linear_layer_output=False):
+                 word_map, use_interpretability=False, linear_layer_output=False):
         super(MemoryNetworkModel, self).__init__()
         self.net = MemoryNetwork(sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda)
         self.linear_layer_output = linear_layer_output
@@ -142,9 +158,12 @@ class MemoryNetworkModel(nn.Module):
         else:
             self.linear = None
         self.metrics = {
-            'class_acc': ClassAccuracyMetric()
+            'class_acc': ClassAccuracyMetric(),
+            'interpret_class_acc': AverageMeter()
         }
         self.loss = nn.CrossEntropyLoss()
+        self.word_map = word_map
+        self.use_interpretability = use_interpretability
 
     def forward(self, input_dict, skip_metrics=False):
         result = {}
@@ -153,8 +172,10 @@ class MemoryNetworkModel(nn.Module):
         questions = input_dict.get('question')
         sentence_line_types = input_dict.get('sentence_line_type')
         question_line_types = input_dict.get('question_line_type')
+        story_lengths = input_dict.get('story_lengths')
         labels = input_dict.get('label', None)
-        raw_memory_result = self.net(sentence_sequences, questions, sentence_line_types, question_line_types)
+        raw_memory_result, in_between_values = self.net(sentence_sequences, questions, sentence_line_types,
+                                                        question_line_types, story_lengths)
 
         if self.linear_layer_output:
             logits = self.linear(raw_memory_result)
@@ -168,8 +189,26 @@ class MemoryNetworkModel(nn.Module):
         if labels is not None:
             loss = self.loss(logits, labels)
             if not skip_metrics:
-                for metric in self.metrics.values():
-                    metric(logits, labels)
+                self.metrics['class_acc'](logits, labels)
+
+                # interpretability
+                if self.use_interpretability:
+                    code_batch = interpret_to_code_batch(sentence_sequences, in_between_values, story_lengths)
+                    batch_size = sentence_sequences.size()[0]
+                    batch_interpret_right = 0
+
+                    for i in range(batch_size):
+                        code = code_batch[i]
+                        tensorised_story = sentence_sequences[i][:story_lengths[i]]
+                        tensorised_question = questions[i]
+                        full_sequence = tensorised_to_full_sequence(tensorised_story, tensorised_question,
+                                                                    self.word_map)
+                        answer = simulate_code_lines(full_sequence, code)
+                        # import pdb; pdb.set_trace()
+                        answer_id = self.word_map.get_id(answer)
+                        label = int(labels[i])
+                        batch_interpret_right += answer_id == label
+                    self.metrics['interpret_class_acc'].update(batch_interpret_right / batch_size, n=batch_size)
             result['loss'] = loss
 
         return result
