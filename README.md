@@ -9,8 +9,8 @@ Implementation To Do
 - [x] (Henri) basic code structure
 - [x] (Henri) basic memory network model
 - [x] (Henri) integrate the memory network with the rest of the code
-- [ ] interpretability code
-- [ ] writing a data parser
+- [x] (Henri) base interpretability code
+- [x] (Kirill) writing a data parser
   - converting bAbI file into raw (line type sequence, sentence sequence, question, answer) tuples
   - creating a dataloader (includes tokenizing and padding)
 
