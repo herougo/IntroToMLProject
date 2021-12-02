@@ -204,7 +204,6 @@ class MemoryNetworkModel(nn.Module):
                         full_sequence = tensorised_to_full_sequence(tensorised_story, tensorised_question,
                                                                     self.word_map)
                         answer = simulate_code_lines(full_sequence, code)
-                        # import pdb; pdb.set_trace()
                         answer_id = self.word_map.get_id(answer)
                         label = int(labels[i])
                         batch_interpret_right += answer_id == label
