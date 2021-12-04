@@ -3,7 +3,11 @@ from torch.utils.data import Dataset, DataLoader
 from easydict import EasyDict as edict
 
 from ml.parsing.parser import parse_file
+from ml.parsing.data import StoryCollection
 from ml.parsing.tensoriser import Tensoriser
+
+
+SPLITS = {'train', 'val', 'test'}
 
 
 def recursive_yield(maybe_list):
@@ -49,6 +53,7 @@ class BABITask(Dataset):
     def __len__(self):
         return len(self.sentence_sequences)
 
+
 def get_dummy_babi_dataloaders():
     batch_size = 32
     sentences = torch.tensor([[[1, 2, 3, 4, 5, 6, 7],
@@ -77,14 +82,20 @@ def get_dummy_babi_dataloaders():
 
 def get_babi_dataloaders(task_ids, batch_size=32, shuffle=True):
     # task_ids: integer or list of integers corresponding to the task ids of bAbI we want to include in the dataset
-    # TODO: support list of integers
-    task_id = task_ids[0]
     tensoriser = Tensoriser()
     story_collections = {
-        'train': parse_file(f'data/en-valid/qa{task_id}_train.txt'),
-        'val': parse_file(f'data/en-valid/qa{task_id}_valid.txt'),
-        'test': parse_file(f'data/en-valid/qa{task_id}_test.txt')
+        'train': StoryCollection(),
+        'val': StoryCollection(),
+        'test': StoryCollection()
     }
+    for task_id in task_ids:
+        for split in SPLITS:
+            if split == 'val':
+                file_split = 'valid'
+            else:
+                file_split = split
+            story_collections[split].extend(parse_file(f'data/en-valid/qa{task_id}_{file_split}.txt'))
+
     data_loaders = edict({
         key: tensoriser.to_dataloader(story_collections[key], batch_size=batch_size, shuffle=shuffle)
         for key in story_collections})

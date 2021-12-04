@@ -38,10 +38,13 @@ def simulate_code_lines(full_sequence, code):
     '''
     memory = {}
     result = []
-    for sent, code_block in zip(full_sequence, code):
-        for line in code_block:
-            if line.startswith('return'):
-                result.append(eval(line[7:]))
-            else:
-                exec(line)
-    return ','.join(result)
+    try:
+        for sent, code_block in zip(full_sequence, code):
+            for line in code_block:
+                if line.startswith('return'):
+                    result.append(str(eval(line[7:])))
+                else:
+                    exec(line)
+        return ','.join(result)
+    except Exception as ex:
+        return ''

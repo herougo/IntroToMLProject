@@ -51,6 +51,13 @@ class StoryCollection:
         self.questions.append(question)
         self.answers.append(answer)
 
+    def extend(self, story_collection):
+        self.max_sentence_length = max(self.max_sentence_length, story_collection.max_sentence_length)
+        self.max_story_length = max(self.max_story_length, story_collection.max_story_length)
+        self.stories.extend(story_collection.stories)
+        self.questions.extend(story_collection.questions)
+        self.answers.extend(story_collection.answers)
+
 
 def get_line_class(line):
     # Inspecting the dataset showed that the word 'and' appears iff two people change location
