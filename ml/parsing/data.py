@@ -13,6 +13,8 @@ class LineClass(IntEnum):
     DOUBLE_LOCATION = 1
     GET_ITEM = 3
     LOSE_ITEM = 4
+    EITHER = 5
+    IS_IN = 6
 
 
 class QuestionClass(IntEnum):
@@ -54,6 +56,10 @@ def get_line_class(line):
     # Inspecting the dataset showed that the word 'and' appears iff two people change location
     if ' and ' in line:
         return LineClass.DOUBLE_LOCATION
+    if ' is either in the ' in line:
+        return LineClass.EITHER
+    if ' is in the ' in line:
+        return LineClass.IS_IN
 
     line_words = set(line.split(' '))
     if set(movement_verbs) & line_words:
