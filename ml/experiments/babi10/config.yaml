@@ -1,5 +1,5 @@
 # required
-exp_name: 'bAbI_Task_1'
+exp_name: 'bAbI_Task_10'
 
 print_freq: 100
 tb_freq:    10
@@ -10,10 +10,10 @@ epochs:     10
 no_cuda:    1
 data_path: 'data'
 experiments_data_path: 'experiments_data'
-task_ids: [1]
+task_ids: [10]
 
 model_kwargs:
   linear_layer_output: False
-  learn_abc_from_input: True
+  learn_abc_from_input: False
 
-lr: 0.001
+lr: 0.1

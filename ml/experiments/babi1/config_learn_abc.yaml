@@ -14,6 +14,6 @@ task_ids: [1]
 
 model_kwargs:
   linear_layer_output: False
-  learn_abc_from_input: False
+  learn_abc_from_input: True
 
-lr: 0.1
+lr: 0.001

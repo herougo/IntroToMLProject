@@ -13,7 +13,7 @@ experiments_data_path: 'experiments_data'
 task_ids: [1]
 
 model_kwargs:
-  linear_layer_output: False
+  linear_layer_output: True
   learn_abc_from_input: False
 
-lr: 0.1
+lr: 0.01
