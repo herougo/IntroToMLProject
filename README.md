@@ -17,26 +17,32 @@ Implementation To Do
 
 Experiments To Do
 
-- [ ] 1st bAbI task
+- [x] bAbI task 1 - single task
+  - [x] with the memory retrieval being the output
+  - [x] with a linear layer at the end
+  - [x] with a's, b's, and c's being learned from the input
+- [x] bAbI task 12 - conjunction
+  - [x] with the memory retrieval being the output
+  - [x] with a linear layer at the end
+  - [x] with a's, b's, and c's being learned from the input
+- [ ] bAbI task 6 - yes/no
   - [ ] with the memory retrieval being the output
   - [ ] with a linear layer at the end
   - [ ] with a's, b's, and c's being learned from the input
-- [ ] 2nd bAbI task
-  - [ ] with the memory retrieval being the output
-  - [ ] with a linear layer at the end
-  - [ ] with a's, b's, and c's being learned from the input
-- [ ] 3rd bAbI task
+- [ ] bAbI task 6 - indefinite knowledge (e.g. either in the bathroom or)
   - [ ] with the memory retrieval being the output
   - [ ] with a linear layer at the end
   - [ ] with a's, b's, and c's being learned from the input
 - [ ] interpretability and code extraction of bAbI tasks 1-3
-- [ ] 1, 2, and 3 learned jointly
-- [ ] 4th bAbI task
+- [ ] 1, 6, 10, 12 learned jointly
+  
+Future Work
+
+- [ ] bAbI task 2
   - ...
-- [ ] 5th bAbI task
+- [ ] bAbI task 11 and 13
   - ...
-- [ ] merge 4th and 5th results
+- [ ] merge 2, 11, and 13 results
 - [ ] learn all tasks separately with the same architecture
 - [ ] learn all tasks jointly with the same architecture
 - [ ] interpretability and code extraction of bAbI tasks 4-5
-- [ ] (Now trying the above without access to line types)
