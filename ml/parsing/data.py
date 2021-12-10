@@ -20,6 +20,7 @@ class LineClass(IntEnum):
 class QuestionClass(IntEnum):
     CURRENT_LOCATION = 0
     PREVIOUS_LOCATION = 1
+    YES_NO_MAYBE = 2
 
 
 class Sentence:
@@ -79,7 +80,11 @@ def get_line_class(line):
 
 
 def get_question_class(line):
+    line_split = line.split(' ')
     if ' before ' in line:
         return QuestionClass.PREVIOUS_LOCATION
-    else:
+    elif line_split[0].lower() == 'is' and line_split[2] == 'in':
+        return QuestionClass.YES_NO_MAYBE
+    elif line_split[0].lower() == 'maybe':
         return QuestionClass.CURRENT_LOCATION
+    raise LookupError(f'The line has not been categorised: {line}')
