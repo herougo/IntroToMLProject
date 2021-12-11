@@ -85,6 +85,6 @@ def get_question_class(line):
         return QuestionClass.PREVIOUS_LOCATION
     elif line_split[0].lower() == 'is' and line_split[2] == 'in':
         return QuestionClass.YES_NO_MAYBE
-    elif line_split[0].lower() == 'maybe':
+    elif line_split[0].lower() == 'where':
         return QuestionClass.CURRENT_LOCATION
     raise LookupError(f'The line has not been categorised: {line}')
