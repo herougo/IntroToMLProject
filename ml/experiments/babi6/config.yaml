@@ -6,7 +6,7 @@ tb_freq:    10
 batch_size: 32
 max_n_batches: 100000000
 test_batch_size: 32
-epochs:     10
+epochs:     100
 no_cuda:    1
 data_path: 'data'
 experiments_data_path: 'experiments_data'
@@ -16,4 +16,4 @@ model_kwargs:
   linear_layer_output: False
   learn_abc_from_input: False
 
-lr: 0.1
+lr: 0.01

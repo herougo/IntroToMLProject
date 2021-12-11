@@ -27,8 +27,8 @@ def batch_to_batch_onehot_tensor(batch, vocab_size):
     sequence_len = batch.size()[1]
     sentence_len = batch.size()[2]
     batch_size = batch.size()[0]
-    batch_onehot_tensor = torch.zeros((batch_size, sequence_len, sentence_len, 
-                                   sentence_len, vocab_size, vocab_size))
+    batch_onehot_tensor = torch.zeros((batch_size, sequence_len, sentence_len,
+                                       sentence_len, vocab_size, vocab_size))
     for b in range(batch_size):
         for seq in range(sequence_len):
             for l1 in range(sentence_len):
@@ -48,8 +48,8 @@ def batch_to_batch_onehot_tensor2(batch, vocab_size):
     sequence_len = batch.size()[1]
     sentence_len = batch.size()[2]
     batch_size = batch.size()[0]
-    batch_onehot_tensor2 = torch.zeros((batch_size, sequence_len, sentence_len, 
-                                       vocab_size, vocab_size))
+    batch_onehot_tensor2 = torch.zeros((batch_size, sequence_len, sentence_len,
+                                        vocab_size, vocab_size))
     for b in range(batch_size):
         for seq in range(sequence_len):
             for l in range(sentence_len):
@@ -73,8 +73,28 @@ def questions_to_questions_onehot_tensor(questions, vocab_size):
     return result
 
 
+def questions_to_questions_onehot_tensor2(questions, vocab_size):
+    '''
+    Output a tensor of shape: B x sent x sent x V x V
+    result[b, sent_i, sent_j, w_i, w_j] == 1 iff the following is true.
+    - w_i corresponds to the ith word in the sentence in batch example b
+    - w_j corresponds to the jth word in the sentence in batch example b
+    '''
+    batch_size = questions.size()[0]
+    sentence_len = questions.size()[1]
+    result = torch.zeros((batch_size, sentence_len, sentence_len, vocab_size, vocab_size))
+    for b in range(batch_size):
+        for i in range(sentence_len):
+            for j in range(sentence_len):
+                w_i = questions[b][i]
+                w_j = questions[b][j]
+                result[b][i][j][w_i][w_j] = 1.0
+    return result
+
+
 class MemoryNetwork(nn.Module):
-    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda,
+    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types,
+                 use_cuda,
                  learn_abc_from_input=False, embedding_dim=100):
         super().__init__()
         self.n_sentence_line_types = n_sentence_line_types
@@ -87,16 +107,24 @@ class MemoryNetwork(nn.Module):
             self.ab_hidden = nn.Linear(sentence_len * embedding_dim, sentence_len * embedding_dim)
             self.a_head = nn.Linear(sentence_len * embedding_dim, sentence_len * sentence_len)
             self.b_head = nn.Linear(sentence_len * embedding_dim, sentence_len)
-            self.question_emb = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
+            self.question_emb = nn.Embedding(num_embeddings=vocab_size,
+                                             embedding_dim=embedding_dim)
             self.c_hidden = nn.Linear(sentence_len * embedding_dim, sentence_len * embedding_dim)
             self.c_head = nn.Linear(sentence_len * embedding_dim, sentence_len)
+            self.d_head = nn.Linear(sentence_len * embedding_dim, sentence_len * sentence_len)
         else:
-            self.a = Parameter(torch.zeros((n_sentence_line_types, sentence_len, sentence_len), requires_grad=True))
-            self.b = Parameter(torch.zeros((n_sentence_line_types, sentence_len), requires_grad=True))
-            self.c = Parameter(torch.zeros((n_question_line_types, sentence_len), requires_grad=True))
+            self.a = Parameter(torch.zeros((n_sentence_line_types, sentence_len, sentence_len),
+                                           requires_grad=True))
+            self.b = Parameter(
+                torch.zeros((n_sentence_line_types, sentence_len), requires_grad=True))
+            self.c = Parameter(
+                torch.zeros((n_question_line_types, sentence_len), requires_grad=True))
+            self.d = Parameter(torch.zeros((n_question_line_types, sentence_len, sentence_len),
+                                           requires_grad=True))
         self.use_cuda = use_cuda
-    
-    def forward(self, sentence_sequences, questions, sentence_line_types, question_line_types, story_lengths):
+
+    def forward(self, sentence_sequences, questions, sentence_line_types, question_line_types,
+                story_lengths):
         batch_onehot_tensor = batch_to_batch_onehot_tensor(sentence_sequences, self.vocab_size)
         # B x seq x sent x sent x V x V
         batch_onehot_tensor2 = batch_to_batch_onehot_tensor2(sentence_sequences, self.vocab_size)
@@ -110,6 +138,8 @@ class MemoryNetwork(nn.Module):
         ones = torch.ones((batch_size, self.vocab_size, self.vocab_size))
         arange = torch.arange(batch_size)
         questions_onehot_tensor = questions_to_questions_onehot_tensor(questions, self.vocab_size)
+        questions_onehot_tensor2 = questions_to_questions_onehot_tensor2(questions,
+                                                                         self.vocab_size)
 
         if self.use_cuda:
             batch_onehot_tensor = batch_onehot_tensor.cuda()
@@ -119,53 +149,71 @@ class MemoryNetwork(nn.Module):
             ones = ones.cuda()
             arange = arange.cuda()
             questions_onehot_tensor = questions_onehot_tensor.cuda()
+            questions_onehot_tensor2 = questions_onehot_tensor2.cuda()
 
         a_s = []
         b_s = []
 
         for i in range(seq_len):
             if self.learn_abc_from_input:
-                emb = self.sent_emb(sentence_sequences[:, i]).view(batch_size, self.embedding_dim * sentence_len)
+                emb = self.sent_emb(sentence_sequences[:, i]).view(batch_size,
+                                                                   self.embedding_dim * sentence_len)
                 ab_hidden = self.ab_hidden(emb)
                 ab_hidden = torch.relu(ab_hidden)
                 a = self.a_head(ab_hidden).view(batch_size, sentence_len, sentence_len, 1, 1)
                 b = self.b_head(ab_hidden).view(batch_size, sentence_len, 1, 1)
             else:
-                a = self.a.view(1, self.n_sentence_line_types, sentence_len, sentence_len, 1, 1).repeat(batch_size, 1, 1, 1, 1, 1)
+                a = self.a.view(1, self.n_sentence_line_types, sentence_len, sentence_len, 1,
+                                1).repeat(batch_size, 1, 1, 1, 1, 1)
                 a = a[arange, sentence_line_types[:, i]]
-                b = self.b.view(1, self.n_sentence_line_types, sentence_len, 1, 1).repeat(batch_size, 1, 1, 1, 1)
+                b = self.b.view(1, self.n_sentence_line_types, sentence_len, 1, 1).repeat(
+                    batch_size, 1, 1, 1, 1)
                 b = b[arange, sentence_line_types[:, i]]
             a_s.append(a)
             b_s.append(b)
             write_to_memory = torch.sum(torch.tanh(a) * batch_onehot_tensor[:, i], axis=[1, 2])
-            modified_identity = identity - torch.minimum(torch.sum(torch.sigmoid(b) * batch_onehot_tensor2[:, i], axis=1), ones)
+            modified_identity = identity - torch.minimum(
+                torch.sum(torch.sigmoid(b) * batch_onehot_tensor2[:, i], axis=1), ones)
             remember = torch.bmm(modified_identity, memory)
             # bmm: batch matrix multiplication
             memory = write_to_memory + remember
 
-        memory_view = memory.view(batch_size, 1, self.vocab_size, self.vocab_size).repeat(1, sentence_len, 1, 1)
+        memory_view = memory.view(batch_size, 1, self.vocab_size, self.vocab_size).repeat(1,
+                                                                                          sentence_len,
+                                                                                          1, 1)
 
         if self.learn_abc_from_input:
             emb = self.question_emb(questions).view(batch_size, self.embedding_dim * sentence_len)
             c_hidden = self.c_hidden(emb)
             c_hidden = torch.relu(c_hidden)
             c = self.c_head(c_hidden).view(batch_size, sentence_len, 1, 1)
+            d = self.d_head(c_hidden).view(batch_size, sentence_len, sentence_len, 1, 1)
         else:
             c = self.c.view(1, self.n_question_line_types, sentence_len).repeat(batch_size, 1, 1)
             c = c[arange, question_line_types]  # batch_size x sentence_len
             c = c.view(batch_size, sentence_len, 1, 1)
+            d = self.d.view(1, self.n_question_line_types, sentence_len, sentence_len).repeat(
+                batch_size, 1, 1, 1)
+            d = d[arange, question_line_types]
+            d = d.view(batch_size, sentence_len, sentence_len, 1, 1)
 
         mem_onehot_matmul = torch.bmm(
             memory_view.transpose(2, 3).view(-1, self.vocab_size, self.vocab_size),
             questions_onehot_tensor.view(-1, self.vocab_size, 1)
         ).view(batch_size, sentence_len, self.vocab_size, 1)
 
-        result = torch.sum(torch.sigmoid(c) * mem_onehot_matmul, axis=[1, 3])
+        c_result = torch.sum(torch.sigmoid(c) * mem_onehot_matmul, axis=[1, 3])
+
+        d_mem_query = torch.sum(torch.sigmoid(d) * questions_onehot_tensor2, axis=[1, 2])
+        d_result = torch.sum(memory * d_mem_query, axis=[1, 2]).view(batch_size, 1)
+
+        result = torch.cat([c_result, d_result], axis=1)
 
         in_between_values = edict({
             'a_s': a_s,
             'b_s': b_s,
-            'c': c
+            'c': c,
+            'd': d
         })
 
         return result, in_between_values
@@ -173,17 +221,22 @@ class MemoryNetwork(nn.Module):
 
 # maps dict to dict, includes metrics and loss
 class MemoryNetworkModel(nn.Module):
-    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda,
+    def __init__(self, sentence_len, vocab_size, n_sentence_line_types, n_question_line_types,
+                 use_cuda,
                  word_map, use_interpretability=False, linear_layer_output=False,
-                 learn_abc_from_input=False, embedding_dim=100):
+                 learn_abc_from_input=False, embedding_dim=100, linear_hidden_dim=100):
         super(MemoryNetworkModel, self).__init__()
-        self.net = MemoryNetwork(sentence_len, vocab_size, n_sentence_line_types, n_question_line_types, use_cuda,
-                                 learn_abc_from_input=learn_abc_from_input, embedding_dim=embedding_dim)
+        self.net = MemoryNetwork(sentence_len, vocab_size, n_sentence_line_types,
+                                 n_question_line_types, use_cuda,
+                                 learn_abc_from_input=learn_abc_from_input,
+                                 embedding_dim=embedding_dim)
         self.linear_layer_output = linear_layer_output
         if linear_layer_output:
-            self.linear = nn.Linear(vocab_size, vocab_size)
+            self.linear = nn.Linear(vocab_size + 1, linear_hidden_dim)
+            self.linear2 = nn.Linear(linear_hidden_dim, vocab_size)
         else:
-            self.linear = None
+            self.linear = nn.Linear(1, vocab_size)
+            raise ValueError('Not supported')
         self.metrics = {
             'class_acc': ClassAccuracyMetric(),
             'interpret_class_acc': AverageMeter()
@@ -201,14 +254,18 @@ class MemoryNetworkModel(nn.Module):
         question_line_types = input_dict.get('question_line_type')
         story_lengths = input_dict.get('story_lengths')
         labels = input_dict.get('label', None)
-        raw_memory_result, in_between_values = self.net(sentence_sequences, questions, sentence_line_types,
+        raw_memory_result, in_between_values = self.net(sentence_sequences, questions,
+                                                        sentence_line_types,
                                                         question_line_types, story_lengths)
 
         if self.linear_layer_output:
-            logits = self.linear(raw_memory_result)
+            temp = self.linear(raw_memory_result)
+            temp = torch.relu(temp)
+            logits = self.linear2(temp)
         else:
             # TODO: change
-            logits = 10 * raw_memory_result - 5
+            logits = self.linear(raw_memory_result[:, -1:])
+
 
         result['logits'] = logits
         result['pred'] = F.softmax(logits, dim=1)
@@ -220,7 +277,8 @@ class MemoryNetworkModel(nn.Module):
 
                 # interpretability
                 if self.use_interpretability:
-                    code_batch = interpret_to_code_batch(sentence_sequences, in_between_values, story_lengths)
+                    code_batch = interpret_to_code_batch(sentence_sequences, in_between_values,
+                                                         story_lengths)
                     batch_size = sentence_sequences.size()[0]
                     batch_interpret_right = 0
 
@@ -228,13 +286,15 @@ class MemoryNetworkModel(nn.Module):
                         code = code_batch[i]
                         tensorised_story = sentence_sequences[i][:story_lengths[i]]
                         tensorised_question = questions[i]
-                        full_sequence = tensorised_to_full_sequence(tensorised_story, tensorised_question,
+                        full_sequence = tensorised_to_full_sequence(tensorised_story,
+                                                                    tensorised_question,
                                                                     self.word_map)
                         answer = simulate_code_lines(full_sequence, code)
                         answer_id = self.word_map.get_id(answer)
                         label = int(labels[i])
                         batch_interpret_right += answer_id == label
-                    self.metrics['interpret_class_acc'].update(batch_interpret_right / batch_size, n=batch_size)
+                    self.metrics['interpret_class_acc'].update(batch_interpret_right / batch_size,
+                                                               n=batch_size)
             result['loss'] = loss
 
         return result
