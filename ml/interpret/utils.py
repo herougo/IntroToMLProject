@@ -17,7 +17,7 @@ def interpret_to_code_batch(sentence_sequences, in_between_values, story_lengths
             for row in np.argwhere(b_slice >= 0.8):
                 code_block.append(f'memory[sent[{row[0]}]] = None')
             a_slice = torch.tanh(a_s[j][i]).view(sent_len, sent_len).numpy()
-            for row in np.argwhere(a_slice >= 0.8):
+            for row in np.argwhere(np.abs(a_slice) >= 0.8):
                 code_block.append(f'memory[sent[{row[0]}]] = sent[{row[1]}]')
             code.append(code_block)
         c_slice = torch.sigmoid(c[i]).view(sent_len).numpy()
