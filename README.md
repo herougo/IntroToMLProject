@@ -1,5 +1,16 @@
 # IntroToMLProject
 
+## Abstract
+
+In this work, we propose the Network with Interpretable Memory (NIM), to solve a small subset of tasks from the bAbI dataset
+[10]. Our goal is to be able to generate Python source code which is easily understood by a human reader and can completely
+solve the tasks. We also propose a metric which measures accuracy based on this source code called Interpret Class Accuracy.
+We evaluate our method on bAbI tasks 1, 12, 6, and 10 and compare with existing state-of-the-art methods. We find that our
+method achieves state-of-the-art performance in bAbI tasks 1 and 12, however, there is room for improvement with tasks 6
+and 10.
+
+## Previous README Content
+
 Learning simple bAbI tasks with a memory-based network.
 
 To start an experiment, create a folder in `ml/experiments`. See `ml/experiments/babione` for an example and organize the code similar to it. Make use of the code in the common code if you can (though the common folder should rarely be modified (so that past experiments still work).
